@@ -4,7 +4,10 @@
             "src": "api/index.py",
             "use": "@vercel/python",
             "config": {
-                "includeFiles": "src/**"
+                "includeFiles": [
+                    "src/**",
+                    "api/static/**"
+                ]
             }
         }
     ],

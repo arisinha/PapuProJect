@@ -91,7 +91,14 @@ def get_agent() -> CalculatorSearchAgent:
 @app.get("/")
 async def root():
     """Serve the main HTML page."""
-    return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
+    try:
+        html_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+        if os.path.isfile(html_path):
+            return FileResponse(html_path)
+        else:
+            return {"message": "API is running. Static files not available.", "docs": "/docs"}
+    except Exception as e:
+        return {"error": str(e), "docs": "/docs"}
 
 
 @app.get("/api/health")
@@ -168,7 +175,15 @@ async def chat_with_steps(request: ChatRequest):
 
 
 # Mount static files (after defining routes)
-app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
+# Wrapped in try-except because Vercel's serverless environment may not have the static directory
+try:
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.isdir(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    else:
+        print(f"WARNING: Static directory not found at {static_dir}")
+except Exception as e:
+    print(f"WARNING: Could not mount static files: {e}")
 
 
 # This is required for Vercel
