@@ -74,9 +74,17 @@ TOOL_ICONS = {
 def get_agent() -> CalculatorSearchAgent:
     """Get or create the agent instance."""
     global agent
-    if agent is None:
-        settings.validate()
-        agent = CalculatorSearchAgent(verbose=False)
+    try:
+        if agent is None:
+            print("Validating settings...")
+            settings.validate()
+            print("Settings validated. Creating agent...")
+            agent = CalculatorSearchAgent(verbose=False)
+            print("Agent created successfully.")
+    except Exception as e:
+        print(f"CRITICAL ERROR initializing agent: {e}")
+        # Re-raise so Vercel logs show it clearly
+        raise e
     return agent
 
 
