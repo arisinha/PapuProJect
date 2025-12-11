@@ -1,16 +1,16 @@
 """
-Minimal Flask API for Vercel.
+FastAPI test for Vercel.
 """
-from flask import Flask
+from fastapi import FastAPI
 
-app = Flask(__name__)
+app = FastAPI()
 
 
-@app.route("/")
+@app.get("/")
 def home():
-    return "Hello from Vercel!"
+    return {"message": "Hello from FastAPI on Vercel!"}
 
 
-@app.route("/api/health")
+@app.get("/api/health")
 def health():
     return {"status": "ok"}
