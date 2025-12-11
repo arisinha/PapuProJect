@@ -1,23 +1,16 @@
 """
-Ultra-minimal API - No external dependencies, pure Python.
+Minimal Flask API for Vercel.
 """
-import json
-from datetime import datetime
+from flask import Flask
+
+app = Flask(__name__)
 
 
-def handler(request):
-    """Handle incoming requests - Vercel Python runtime format."""
-    path = request.get("path", "/")
-    
-    response_body = {
-        "message": "Hello from pure Python!",
-        "path": path,
-        "timestamp": datetime.now().isoformat(),
-        "python_works": True
-    }
-    
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(response_body)
-    }
+@app.route("/")
+def home():
+    return "Hello from Vercel!"
+
+
+@app.route("/api/health")
+def health():
+    return {"status": "ok"}
