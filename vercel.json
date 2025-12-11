@@ -2,7 +2,13 @@
     "builds": [
         {
             "src": "api/index.py",
-            "use": "@vercel/python"
+            "use": "@vercel/python",
+            "config": {
+                "includeFiles": [
+                    "src/**",
+                    "api/static/**"
+                ]
+            }
         }
     ],
     "routes": [
