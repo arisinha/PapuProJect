@@ -1,0 +1,52 @@
+# ============================================
+# Docker Compose para Agente Calculadora
+# ============================================
+# Uso:
+#   docker-compose up --build        # Construir y ejecutar
+#   docker-compose run agent --demo  # Ejecutar demo
+#   docker-compose run agent         # Modo interactivo
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agente-calculadora
+
+    # Variables de entorno (puedes usar .env o definirlas aqui)
+    env_file:
+      - .env
+
+    # Para modo interactivo necesitamos stdin
+    stdin_open: true
+    tty: true
+    # Montar volumen para desarrollo (opcional)
+    # volumes:
+    #   - ./src:/app/src:ro
+
+    # Recursos (opcional, ajustar segun necesidad)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+
+    # Servicio alternativo para ejecutar solo el demo
+  demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agente-demo
+    env_file:
+      - .env
+    command: [ "python", "main.py", "--demo" ]
+
+  # Servicio para una sola pregunta
+  query:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agente-query
+    env_file:
+      - .env
+    # Usar con: docker-compose run query python main.py --question "tu pregunta"
+    entrypoint: [ "python", "main.py" ]
