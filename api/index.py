@@ -10,15 +10,35 @@ import os
 from typing import Optional, List
 from datetime import datetime
 
-# Add root directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add root directory to path - try multiple strategies for Vercel compatibility
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_current_dir)
+
+# Strategy 1: Parent directory (works locally when running from api/)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
+# Strategy 2: Current working directory (may work on some Vercel configs)
+_cwd = os.getcwd()
+if _cwd not in sys.path:
+    sys.path.insert(0, _cwd)
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
-from src.agents import CalculatorSearchAgent
-from src.config.settings import settings
+
+# Lazy imports for modules that might fail - wrap in try-except
+try:
+    from src.agents import CalculatorSearchAgent
+    from src.config.settings import settings
+    AGENT_AVAILABLE = True
+    IMPORT_ERROR = None
+except ImportError as e:
+    AGENT_AVAILABLE = False
+    IMPORT_ERROR = str(e)
+    CalculatorSearchAgent = None
+    settings = None
 
 
 # Initialize FastAPI app
@@ -74,6 +94,14 @@ TOOL_ICONS = {
 def get_agent() -> CalculatorSearchAgent:
     """Get or create the agent instance."""
     global agent
+    
+    # Check if agent modules were imported successfully
+    if not AGENT_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Agent not available. Import error: {IMPORT_ERROR}"
+        )
+    
     try:
         if agent is None:
             print("Validating settings...")
@@ -83,8 +111,7 @@ def get_agent() -> CalculatorSearchAgent:
             print("Agent created successfully.")
     except Exception as e:
         print(f"CRITICAL ERROR initializing agent: {e}")
-        # Re-raise so Vercel logs show it clearly
-        raise e
+        raise HTTPException(status_code=503, detail=f"Agent initialization failed: {str(e)}")
     return agent
 
 
@@ -105,6 +132,25 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/debug")
+async def debug_info():
+    """Debug endpoint to diagnose deployment issues."""
+    return {
+        "agent_available": AGENT_AVAILABLE,
+        "import_error": IMPORT_ERROR,
+        "python_version": sys.version,
+        "cwd": os.getcwd(),
+        "file_dir": os.path.dirname(os.path.abspath(__file__)),
+        "sys_path": sys.path[:5],  # First 5 entries
+        "env_vars_set": {
+            "DEEPSEEK_API_KEY": bool(os.getenv("DEEPSEEK_API_KEY")),
+            "DEEPSEEK_MODEL": os.getenv("DEEPSEEK_MODEL", "not set"),
+        },
+        "static_dir_exists": os.path.isdir(os.path.join(os.path.dirname(__file__), "static")),
+        "src_dir_exists": os.path.isdir(os.path.join(os.path.dirname(os.path.dirname(__file__)), "src")),
+    }
 
 
 @app.get("/api/tools", response_model=List[ToolInfo])
